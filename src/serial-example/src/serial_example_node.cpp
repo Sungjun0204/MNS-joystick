@@ -41,6 +41,8 @@ void mns_callback(const std_msgs::String::ConstPtr& msg) {
 
 
 
+
+
 int main (int argc, char** argv){
     ros::init(argc, argv, "serial_example_node");
     ros::NodeHandle nh;
@@ -51,7 +53,7 @@ int main (int argc, char** argv){
 
     try
     {
-        ser.setPort("/dev/ttyUSB1");
+        ser.setPort("/dev/ttyUSB0");
         ser.setBaudrate(115200);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
         ser.setTimeout(to);
@@ -69,13 +71,34 @@ int main (int argc, char** argv){
         return -1;
     }
 
-    ros::Rate loop_rate(5);
+    ros::Rate loop_rate(10);
     while(ros::ok()){
 
         ros::spinOnce();
 
-        ser.write(mns_data);
-        // mns_data = {0,};         // reset packet
+
+        if(mns_data == "Comm_Start"){
+            //// 통신 시작 ////
+            ser.write("SYST:REM\n");   
+            ser.write("OUTP 1\n");
+            ser.write("MODE DC\n");s
+            ser.write("INSTrument:COUPle NONE\n");
+            ser.write("OUTP:IMM 1\n");
+            // ser.write("VOLTage 10\n");
+        }
+
+        else if(mns_data == "Comm_End"){
+            //// 통신 종료 ////
+            ser.write("INSTrument:COUPle ALL\n");
+            ser.write("VOLTage 0\n");
+            ser.write("OUTP 0\n");
+            ser.write("SYST:LOC\n");
+            ser.write("OUTP:IMM 0\n");
+        }
+        
+        //ROS_INFO_STREAM("SYST:REM");   // 문구 출력
+        
+    
 
         if(ser.available()){
             // ROS_INFO_STREAM("Reading from serial port");
