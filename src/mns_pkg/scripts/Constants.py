@@ -21,6 +21,13 @@ Ruz = 9.2
 Rm  = 6.2
 Rg  = 10.4
 
+# # Voltage
+# Vh  = 0
+# Vuy = 0
+# Vuz = 0
+# Vm  = 0
+# Vg  = 0
+
 
 def volt():
     global Bh, Buy, Buz, B_m, g_m, B_g, g_g

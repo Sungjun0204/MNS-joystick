@@ -8,6 +8,7 @@ import numpy as np
 import Constants as c
 from std_msgs.msg import String
 from std_msgs.msg import Int32
+from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Joy
 import sys
 import signal
@@ -179,28 +180,36 @@ def mns():
 
     #### 메세지 발행 구간 ####
     pub = rospy.Publisher('mns_msgs', String, queue_size=10)  # 계산된 전압 값을 발행함
+    pub_volt = rospy.Publisher('volt_array', Float32MultiArray, queue_size=10)
     rate = rospy.Rate(100) # 100hz
 
 
 
     #### 본격적인 알고리즘 반복문 ####
     while (not rospy.is_shutdown()) or (exit == 1):
+        
 
         mode_select(joy)
         # print('[%d]  [%d]  [%d]  [%d]  [%d]   { theta:%d } { phi:%d }  [%d] \n' %(np.around(c.Vh),np.around(c.Vuy),np.around(c.Vuz),np.around(c.Vm),np.around(c.Vg),np.around(np.rad2deg(theta)),np.around(np.rad2deg(phi)),speed))
 
         #### btn: start, mode 0: PSU 무선통신 시작 ####
         if robot_mode == 0:
-            rospy.loginfo("PSU is connected now!")  # 통신이 시작됨을 알리는 텍스트 출력
-            pub.publish("Comm_Start")               # 통신 시작 설정을 알리는 문자열 전송
+            pub.publish("Comm_Start")               # 통신 시작 설정을 알리는 문자열 메세지 전송
             robot_mode = 9                          # 이후 중립모드로 설정
 
         #### btn: RB, mode 2: Helical Mode ####
         elif robot_mode == 2:
-            helical_control()
+            helical_control()                       # 자기로봇 제어를 위한 자기장 값 계산
             print('****** Parameters Check *****\n')
             # print('HC: [%d]  \nUy: [%d]  \nUz[%d]  \nMC[%d]  \nG[%d]   \n{ theta:%d } \n{ phi:%d }  \n[%d]\n', np.around(c.Vh),np.around(c.Vuy),np.around(c.Vuz),np.around(c.Vm),np.around(c.Vg),np.around(np.rad2deg(theta)),np.around(np.rad2deg(phi)),speed)        
             print(c.volt())
+            
+            v_new = Float32MultiArray()
+            v_new.data = c.volt()
+            pub.publish("Control_Start")            # 제어 시작 설정을 알리는 문자열 메세지 전송
+            pub_volt.publish(v_new)                 # publish
+            
+
 
 
 
@@ -210,14 +219,13 @@ def mns():
             c.B_m = 0; c.g_m = 0; c.B_g = 0; c.g_g = 0
             theta_init_flag = 0
 
-            rospy.loginfo("PSU is unconnected!!!")  # 통신이 종료됨을 알리는 텍스트 출력
-            pub.publish('Comm_End')                    # 통신 종료 설정을 알리는 문자열 전송 
+            pub.publish('Comm_End')                    # 통신 종료 설정을 알리는 문자열 메세지 전송 
             robot_mode = 9                             # 이후 중립모드로
-            exit = 1                                   # 반복문 탈출 및 node 종료
+            exit = 0                                   # 반복문 탈출 및 node 종료
 
 
         # Transmit DC
-        v_new = [0.0, 0.0, 0.0]
+        
         #v_new[0] = c.Vh; v_new[1] = c.Vuy; v_new[2] = c.Vuz
         #pub.publish(''.join(['INSTrument:NSELect',chr(1)]))  # phase 1
         #pub.publish(''.join(['VOLTage',str(v_new[0])]))
