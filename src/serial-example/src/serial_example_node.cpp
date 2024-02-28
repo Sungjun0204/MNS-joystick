@@ -122,6 +122,7 @@ int main (int argc, char** argv){
 
         else if(mns_data == "Control_Start" && flag_off == 0){
             // voltage 변수에 저장되어 있는 각 코일의 전압 값을 문자열로 변환 저장
+            // PSU에 전압 지령을 내리려면 원하는 수치를 문자열로 변환하여 송싱해야 함!
             std::stringstream ss;
             if (voltage.size() >= 5) {
                 for(int i = 0; i < 5; ++i) {

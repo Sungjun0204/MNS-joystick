@@ -7,20 +7,23 @@ import rospy
 import numpy as np
 import Constants as c
 from std_msgs.msg import String
-from std_msgs.msg import Int32
+from std_msgs.msg import Float32
 from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Joy
 import sys
 import signal
 
-
+# 조이스틱 입력을 받아서 저장하기 위한 2차원 리스트 변수 초기화
 joy = [[0,0,0,0,0,0,0,0,0,0,0], 
         [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
 
-turntime = Int32()
+# node 내부의 시간의 흐름을 구현하기 위한 값 선언
+turntime = Float32()
 turntime.data = 0
-robot_mode = 9
-theta=0
+
+# 관련 파라미터 선언 및 초기화
+robot_mode = 9              # 알고리즘 모드를 설정하는 변수 
+theta=0                 
 thetafix=0
 theta_flag=0
 phi=0
@@ -34,7 +37,8 @@ theta_init_flag = 0
 
 
 MU0 = 4*np.pi*17**(-7)
-B0 = 3.64     # if B0=1, B is 5.5
+B0 = 4.36     
+              # if B0=1, B is 5.5
               # hanyang Uni. spec standard: 2.55(14mT)
               # Kwangwoon Uni. spec standard: 3.64(20mT)
 
@@ -81,6 +85,7 @@ def mode_select(data):
     get_speed(data)
 
 
+# 왼쪽 조이스틱 위/아래 조작: cylindrical coordi. 기준 helical robot의 theta값 조정
 def get_theta(data):
     global theta, theta_flag, theta_init
 
@@ -96,6 +101,7 @@ def get_theta(data):
         theta_flag = 1
 
 
+# 오른쪽 조이스틱 좌/우 조작: cylindrical coordi. 기준 helical robot의 phi값 조정
 def get_phi(data):
     global phi, phi_flag
 
@@ -111,6 +117,7 @@ def get_phi(data):
         phi_flag = 1
 
 
+# 오른쪽 조이스틱 위/아래 조작: helical robot의 회전 속도
 def get_speed(data):
     global speed, speed_flag
 
@@ -126,6 +133,7 @@ def get_speed(data):
         speed_flag = 1 
      
 
+### helical robot을 회전시키기 위한 자기장 값 계산 알고리즘 ###
 def helical_control():
     global theta_init_flag, theta_init, speed, theta
 
@@ -149,12 +157,14 @@ def helical_control():
     # calculate each delta
     U_length = np.sqrt(((U[0]**2)-(N[0]**2)) + ((U[1]**2)-(N[1]**2)) + ((U[2]**2)-(N[2]**2)))
     N_length = np.sqrt((N[0]**2) + (N[1]**2) + (N[2]**2))
+    # U_length = np.linalg.norm(U-N)
+    # N_length = np.linalg.norm(N)
 
     # delta = atan(N_length / U_length);
     delta = np.arctan2(np.real(N_length) , np.real(U_length))
+    # delta = np.arctan2(N_length, U_length)
 
     # [ calculate Helical B ]
-    # Brt = [[0.0], [0.0], [0.0]]
     Brt = np.array(B0*(np.cos(delta)*N + np.sin(delta)*np.cos(omega*turntime.data)*U + np.sin(delta)*np.sin(omega*turntime.data)*(np.cross(N,U))))
     H = np.cross(Brt,N);    # value for drawing graph
 
@@ -169,7 +179,7 @@ def helical_control():
 
 
 
-# 해당 프로그램의 메인문
+### 해당 프로그램의 메인문 ###
 def mns():
     global robot_mode, joy, theta, phi, speed, theta_init_flag, exit
 
@@ -208,10 +218,6 @@ def mns():
             v_new.data = c.volt()
             pub.publish("Control_Start")            # 제어 시작 설정을 알리는 문자열 메세지 전송
             pub_volt.publish(v_new)                 # publish
-            
-
-
-
 
         #### btn: X, mode 3: 프로그램 종료 ####
         elif robot_mode == 3:   
@@ -224,25 +230,11 @@ def mns():
             exit = 0                                   # 반복문 탈출 및 node 종료
 
 
-        # Transmit DC
         
-        #v_new[0] = c.Vh; v_new[1] = c.Vuy; v_new[2] = c.Vuz
-        #pub.publish(''.join(['INSTrument:NSELect',chr(1)]))  # phase 1
-        #pub.publish(''.join(['VOLTage',str(v_new[0])]))
-
-        #pub.publish(''.join(['INSTrument:NSELect',chr(2)]))  # phase 2
-        #pub.publish(''.join(['VOLTage',str(v_new[1])]))
-
-        #pub.publish(''.join(['INSTrument:NSELect',chr(3)]))  # phase 3
-        #pub.publish(''.join(['VOLTage',str(v_new[2])]))
-        
-        
-        turntime.data += 1
+        turntime.data += 0.01   # 시간의 흐름 설정 (물론 실시간 보장 X)
 
         rate.sleep()
 
-
-    
 
 
     rospy.spin()
