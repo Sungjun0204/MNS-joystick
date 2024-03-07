@@ -157,12 +157,8 @@ def helical_control():
     # calculate each delta
     U_length = np.sqrt(((U[0]**2)-(N[0]**2)) + ((U[1]**2)-(N[1]**2)) + ((U[2]**2)-(N[2]**2)))
     N_length = np.sqrt((N[0]**2) + (N[1]**2) + (N[2]**2))
-    # U_length = np.linalg.norm(U-N)
-    # N_length = np.linalg.norm(N)
 
-    # delta = atan(N_length / U_length);
     delta = np.arctan2(np.real(N_length) , np.real(U_length))
-    # delta = np.arctan2(N_length, U_length)
 
     # [ calculate Helical B ]
     Brt = np.array(B0*(np.cos(delta)*N + np.sin(delta)*np.cos(omega*turntime.data)*U + np.sin(delta)*np.sin(omega*turntime.data)*(np.cross(N,U))))
@@ -173,7 +169,6 @@ def helical_control():
     c.Bh = Brt[0]
     c.Buy = Brt[1]
     c.Buz = Brt[2]
-    # print(c.Bh, c.Buy, c.Buz)
 
 
 
